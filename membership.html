@@ -1,0 +1,568 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智能服务会员</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a365d',
+                        secondary: '#2a4365',
+                        accent: '#d4af37',
+                        dark: '#121212',
+                        'dark-light': '#1e1e1e80' /* 半透明黑色 */,
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            }
+            .dark-gradient {
+                background: linear-gradient(180deg, #1e1e1e 0%, #121212 100%);
+            }
+        }
+    </style>
+    
+    <style>
+        body {
+            background-image: url('bg.png');
+            background-color: #292929; 
+            background-size: cover; /* 背景图覆盖整个屏幕 */
+            background-position: center; /* 背景图居中显示 */
+            background-repeat: no-repeat; /* 背景图不重复 */
+            background-attachment: fixed; /* 背景图固定，不随滚动变化 */
+            color: #ffffff; /* 确保文字保持白色，在黑色背景上清晰可见 */
+            overflow-x: hidden; /* 防止水平滚动条 */
+            font-size: 12px; /* 全局基础字号设置为12px */
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 1像素白线问题 */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        /* 滚动条样式 */
+        .scroll-container::-webkit-scrollbar {
+            height: 5px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-track {
+            background: #1e1e1e80;
+            border-radius: 10px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-thumb {
+            background-color: #1e1e1e80;
+            border-radius: 10px;
+        }
+        
+        /* 卡片样式 - 使用图片作为背景 */
+        .card {
+            background-image: url('card_unselected_bg.png');
+            background-size: cover;
+            background-position: center;
+            transition: all 0.3s ease;
+            border: none; 
+        }
+        
+        /* 选中状态的卡片背景 */
+        .card.selected {
+            background-image: url('card_bg.png');
+            box-shadow: none;
+        }
+        
+        .btn-primary {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.2);
+        }
+        
+        /* 自定义指示器 */
+        .scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+        .indicator-bar {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 0px;
+        }
+        .indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: hsl(0, 0%, 100%);
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+        .indicator-dot.active {
+            opacity: 1;
+        }
+        
+        /* Tab切换器样式 */
+        .tab-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .tab-wrapper {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2px;
+            display: inline-flex;
+            backdrop-filter: blur(4px);
+        }
+        .tab-btn {
+            padding: 6px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: none;
+            background: transparent;
+            font-size: 14px; /* 将字体改为14号 */
+            color: white; /* 未选中的tab文字颜色变为白色 */
+            opacity: 0.8; /* 添加一些透明度以便与选中状态区分 */
+        }
+        .tab-btn.active {
+            background: white;
+            color: #333;
+            font-weight: 500;
+            opacity: 1; /* 选中状态完全不透明 */
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <!-- 顶部导航 - 修改背景图片显示方式，确保完整显示不裁切 -->
+    <header class="relative pt-20 pb-5" style="background-image: url('username_bg.png'); background-size: contain; background-position: center; background-repeat: no-repeat;">
+        <!-- 用户名 -->
+        <div class="flex justify-center">
+            <div class="relative h-8 rounded-full overflow-hidden inline-flex items-center" style="background-color: #545454;">
+                <div class="absolute left-0 top-0 h-full w-8 rounded-full bg-white"></div>
+                <!-- 调整文本位置，确保与头像框和右侧边距一致 -->
+                <div class="flex items-center justify-center h-full text-xs pl-11 pr-4">Username</div>
+            </div>
+        </div>
+        
+        <!-- 会员到期信息 -->
+        <div class="flex justify-center items-center mt-3">
+            <img src="vip_icon@3x.png" alt="会员标志" class="w-5 h-5 mr-2">
+            <span class="text-gray-300">2026/08/25到期</span>
+        </div>
+    </header>
+    
+    <!-- 调整 main 元素的内边距，保留上下内边距但移除左右内边距 -->
+    <main class="p-0 pt-4 px-0">
+        <!-- 会员服务标题 - 改为可切换的tab栏 -->
+        <section class="mb-6">
+            <!-- 新的Tab切换器结构 -->
+            <div class="tab-container">
+                <div class="tab-wrapper">
+                    <!-- 智能服务会员Tab -->
+                    <div id="tab-membership" class="tab-btn active">智能服务会员</div>
+                    
+                    <!-- 亲情钥匙Tab -->
+                    <div id="tab-family-key" class="tab-btn">亲情钥匙</div>
+                </div>
+            </div>
+            
+            <!-- 智能服务会员内容 -->
+            <div id="content-membership" class="tab-content">
+                <!-- 价格卡片容器 - 支持横向滚动，调整间距为6，修复裁切问题 -->
+                <div class="scroll-container flex gap-1.5 overflow-x-auto pb-4 px-0 items-end" id="card-scroll" style="box-sizing:border-box;">
+                    <!-- 增加空白占位元素的宽度，确保最左侧卡片可以完全显示 -->
+                    <div class="w-4 flex-shrink-0"></div>
+                    <!-- 1个月卡片 -->
+                    <div class="relative flex-shrink-0" style="width:112px;height:158px;">
+                        <div class="card rounded-xl p-4 flex flex-col items-center justify-center whitespace-nowrap w-full h-full" data-price="30" data-months="1">
+                            <div class="text-gray-300 mb-2 text-center whitespace-nowrap">1个月</div>
+                            <div class="text-2xl font-bold mb-1 text-center whitespace-nowrap">30元</div>
+                        </div>
+                    </div>
+        
+                    <!-- 3个月卡片 -->
+                    <div class="relative flex-shrink-0" style="width:112px;">
+                        <div style="position:relative;left:0;top:0;margin-bottom:-15px;width:63px;height:23px;z-index:2;">
+                            <img src="Union.png" width="63" height="23" style="display:block;">
+                            <span style="position:absolute;left:0;top:-2;width:63px;height:23px;display:flex;align-items:center;justify-content:center;line-height:23px;" class="text-dark text-xs font-bold text-center">7.8折</span>
+                        </div>
+                        <div class="card rounded-xl p-4 flex flex-col items-center justify-center whitespace-nowrap w-full h-[158px]" data-price="69" data-months="3">
+                            <div class="text-gray-300 mb-2 text-center whitespace-nowrap">3个月</div>
+                            <div class="text-sm text-gray-400 text-center whitespace-nowrap line-through mb-1">90元</div>
+                            <div class="text-2xl font-bold mb-1 text-center whitespace-nowrap">69元</div>
+                            <div class="text-xs text-center whitespace-nowrap" style="color:#FFF0CB;">23元/月 省21元</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 6个月卡片 -->
+                    <div class="relative flex-shrink-0" style="width:112px;">
+                        <div style="position:relative;left:0;top:0;margin-bottom:-15px;width:63px;height:23px;z-index:2;">
+                            <img src="Union.png" width="63" height="23" style="display:block;">
+                            <span style="position:absolute;left:0;top:-2;width:63px;height:23px;display:flex;align-items:center;justify-content:center;line-height:23px;" class="text-dark text-xs font-bold text-center">7.2折</span>
+                        </div>
+                        <div class="card rounded-xl p-4 flex flex-col items-center justify-center whitespace-nowrap w-full h-[158px]" data-price="129" data-months="6">
+                            <div class="text-gray-300 mb-2 text-center whitespace-nowrap">6个月</div>
+                            <div class="text-sm text-gray-400 text-center whitespace-nowrap line-through mb-1">159元</div>
+                            <div class="text-2xl font-bold mb-1 text-center whitespace-nowrap">129元</div>
+                            <div class="text-xs text-center whitespace-nowrap" style="color:#FFF0CB;">21.5元/月 省51元</div>
+                            <img src="80.png"
+                                 alt="80%用户的选择"
+                                 style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 7px; width: 98px; height: 13px; pointer-events: none; z-index: 10;">
+                        </div>
+                    </div>
+                    
+                    <!-- 12个月卡片 -->
+                    <div class="relative flex-shrink-0" style="width:112px;">
+                        <div style="position:relative;left:0;top:0;margin-bottom:-15px;width:63px;height:23px;z-index:2;">
+                            <img src="Union.png" width="63" height="23" style="display:block;">
+                            <span style="position:absolute;left:0;top:-2;width:63px;height:23px;display:flex;align-items:center;justify-content:center;line-height:23px;" class="text-dark text-xs font-bold text-center">6.6折</span>
+                        </div>
+                        <div class="card rounded-xl p-4 flex flex-col items-center justify-center whitespace-nowrap w-full h-[158px]" data-price="199" data-months="12">
+                            <div class="text-gray-300 mb-2 text-center whitespace-nowrap">12个月</div>
+                            <div class="text-sm text-gray-400 text-center whitespace-nowrap line-through mb-1">360元</div>
+                            <div class="text-2xl font-bold mb-1 text-center whitespace-nowrap">199元</div>
+                            <div class="text-xs text-center whitespace-nowrap" style="color:#FFF0CB;">16.6元/月 省161元</div>
+                        </div>
+                    </div>
+                    <!-- 添加一个空白占位元素，确保最右侧卡片可以完全显示 -->
+                    <div class="w-0 flex-shrink-0"></div>
+                </div>
+                <!-- 指示器 -->
+                <div class="indicator-bar" id="indicator-bar">
+                    <div class="indicator-dot active"></div>
+                    <div class="indicator-dot"></div>
+                </div>
+            </div>
+            
+            <!-- 亲情钥匙内容 - 修改为使用与智能服务会员相同的价格卡片格式 -->
+            <div id="content-family-key" class="tab-content" style="display: none;">
+                <!-- 价格卡片容器 - 支持横向滚动，与智能服务会员使用相同样式 -->
+                <div class="scroll-container flex gap-1.5 overflow-x-auto pb-4 px-0 items-end" id="family-key-scroll" style="box-sizing:border-box;">
+                    <!-- 增加空白占位元素的宽度，确保最左侧卡片可以完全显示 -->
+                    <div class="w-4 flex-shrink-0"></div>
+                    <!-- 1把钥匙卡片 -->
+                    <div class="relative flex-shrink-0" style="width:112px;height:158px;">
+                        <div class="card rounded-xl p-4 flex flex-col items-center justify-center whitespace-nowrap w-full h-full family-key-card selected" data-price="68" data-keys="1">
+                            <div class="text-gray-300 mb-2 text-center whitespace-nowrap">1把钥匙</div>
+                            <div class="text-2xl font-bold mb-1 text-center whitespace-nowrap">68元</div>
+                        </div>
+                    </div>
+        
+                    <!-- 2把钥匙卡片 -->
+                    <div class="relative flex-shrink-0" style="width:112px;">
+                        <div style="position:relative;left:0;top:0;margin-bottom:-15px;width:63px;height:23px;z-index:2;">
+                            <img src="Union.png" width="63" height="23" style="display:block;">
+                            <span style="position:absolute;left:0;top:-2;width:63px;height:23px;display:flex;align-items:center;justify-content:center;line-height:23px;" class="text-dark text-xs font-bold text-center">8.8折</span>
+                        </div>
+                        <div class="card rounded-xl p-4 flex flex-col items-center justify-center whitespace-nowrap w-full h-[158px] family-key-card" data-price="120" data-keys="2">
+                            <div class="text-gray-300 mb-2 text-center whitespace-nowrap">2把钥匙</div>
+                            <div class="text-sm text-gray-400 text-center whitespace-nowrap line-through mb-1">136元</div>
+                            <div class="text-2xl font-bold mb-1 text-center whitespace-nowrap">120元</div>
+                            <div class="text-xs text-center whitespace-nowrap" style="color:#FFF0CB;">60元/把 省16元</div>
+                        </div>
+                    </div>
+                    <!-- 添加一个空白占位元素，确保最右侧卡片可以完全显示 -->
+                    <div class="w-0 flex-shrink-0"></div>
+                </div>
+                <!-- 指示器 -->
+                <div class="indicator-bar" id="family-key-indicator-bar">
+                    <div class="indicator-dot active"></div>
+                    <div class="indicator-dot"></div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+        // 价格计算相关变量
+        let selectedPrice = 30; // 默认选择1个月
+        
+        // DOM元素
+        const cards = document.querySelectorAll('.card');
+        let totalPriceEl = document.getElementById('total-price'); // 改为let而不是const
+        const tabMembership = document.getElementById('tab-membership');
+        const tabFamilyKey = document.getElementById('tab-family-key');
+        const contentMembership = document.getElementById('content-membership');
+        const contentFamilyKey = document.getElementById('content-family-key');
+        const familyKeyCards = document.querySelectorAll('.family-key-card');
+        
+        // 添加检查确保totalPriceEl存在，如果不存在则稍后再获取
+        if (!totalPriceEl) {
+            // 等待DOM完全加载后再尝试获取元素
+            document.addEventListener('DOMContentLoaded', function() {
+                totalPriceEl = document.getElementById('total-price');
+                // 更新总价显示
+                updateTotalPrice();
+            });
+        }
+        
+        // 初始化 - 默认选中第一个卡片
+        if (cards.length > 0) {
+            cards[0].classList.add('selected');
+            // 立即更新总价显示
+            updateTotalPrice();
+        }
+        
+        // 卡片点击事件
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                // 移除所有卡片的选中状态
+                cards.forEach(c => c.classList.remove('selected'));
+                // 添加当前卡片的选中状态
+                card.classList.add('selected');
+                // 更新选中的价格，添加基数参数并进行错误处理
+                selectedPrice = parseInt(card.dataset.price, 10) || 30;
+                // 更新总价
+                updateTotalPrice();
+            });
+        });
+        
+        // 亲情钥匙卡片点击事件
+        familyKeyCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // 移除所有卡片的选中状态
+                familyKeyCards.forEach(c => c.classList.remove('selected'));
+                // 添加当前卡片的选中状态
+                card.classList.add('selected');
+                // 更新选中的价格，添加基数参数并进行错误处理
+                selectedPrice = parseInt(card.dataset.price, 10) || 68;
+                // 更新总价
+                updateTotalPrice();
+            });
+        });
+
+        // 更新总价
+        function updateTotalPrice() {
+            let total = selectedPrice;
+            // 添加检查确保totalPriceEl不为null
+            if (totalPriceEl) {
+                totalPriceEl.textContent = total;
+            }
+        }
+
+        // 切换到智能服务会员Tab
+        function switchToMembership() {
+            // 更新Tab样式
+            tabMembership.classList.add('active');
+            tabMembership.classList.remove('text-gray-400');
+            tabFamilyKey.classList.remove('active');
+            // 移除对text-gray-400的添加，因为现在未选中状态默认就是白色
+            
+            // 更新内容显示
+            contentMembership.style.display = 'block';
+            contentFamilyKey.style.display = 'none';
+            
+            // 更新总价（智能服务会员的默认价格）
+            const selectedMembershipCard = document.querySelector('.card.selected');
+            if (selectedMembershipCard) {
+                selectedPrice = parseInt(selectedMembershipCard.dataset.price);
+            } else {
+                selectedPrice = 30; // 默认价格
+            }
+            updateTotalPrice();
+            
+            // 切换到p1.png图片
+            const benefitsImage = document.getElementById('benefits-image');
+            if (benefitsImage) {
+                benefitsImage.src = 'p1.png';
+            }
+            
+            // 更新指示器显示状态
+            updateIndicatorDisplay();
+        }
+        
+        // 切换到亲情钥匙Tab
+        function switchToFamilyKey() {
+            // 更新Tab样式
+            tabFamilyKey.classList.add('active');
+            tabFamilyKey.classList.remove('text-gray-400');
+            tabMembership.classList.remove('active');
+            // 移除对text-gray-400的添加，因为现在未选中状态默认就是白色
+            
+            // 更新内容显示
+            contentFamilyKey.style.display = 'block';
+            contentMembership.style.display = 'none';
+            
+            // 获取亲情钥匙选中的价格
+            // 默认选中第一张亲情钥匙卡片
+            if (familyKeyCards.length > 0) {
+                // 移除所有亲情钥匙卡片的选中状态
+                familyKeyCards.forEach(c => c.classList.remove('selected'));
+                // 添加第一张卡片的选中状态
+                familyKeyCards[0].classList.add('selected');
+                // 获取第一张卡片的价格
+                selectedPrice = parseInt(familyKeyCards[0].dataset.price, 10) || 68;
+            } else {
+                selectedPrice = 68; // 默认价格
+            }
+            updateTotalPrice();
+            
+            // 切换到p2.png图片
+            const benefitsImage = document.getElementById('benefits-image');
+            if (benefitsImage) {
+                benefitsImage.src = 'p2.png';
+            }
+            
+            // 更新指示器显示状态
+            updateIndicatorDisplay();
+        }
+
+        // 亲情钥匙卡片点击事件
+        familyKeyCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // 移除所有卡片的选中状态
+                familyKeyCards.forEach(c => c.classList.remove('selected'));
+                // 添加当前卡片的选中状态
+                card.classList.add('selected');
+                // 更新选中的价格
+                selectedPrice = parseInt(card.dataset.price);
+                // 更新总价
+                updateTotalPrice();
+            });
+        });
+
+        // 指示器逻辑
+        const scrollContainer = document.getElementById('card-scroll');
+        const indicatorBar = document.getElementById('indicator-bar');
+        const indicatorDots = indicatorBar.querySelectorAll('.indicator-dot');
+
+        function updateIndicator() {
+            // 计算当前可视区域的第一个卡片索引
+            const scrollLeft = scrollContainer.scrollLeft;
+            const cardWidth = 112 + 6; // 卡片宽度+gap
+            const index = Math.round(scrollLeft / cardWidth);
+            indicatorDots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+
+        // 亲情钥匙滚动指示器逻辑
+        const familyKeyScrollContainer = document.getElementById('family-key-scroll');
+        const familyKeyIndicatorBar = document.getElementById('family-key-indicator-bar');
+        const familyKeyIndicatorDots = familyKeyIndicatorBar.querySelectorAll('.indicator-dot');
+
+        function updateFamilyKeyIndicator() {
+            // 计算当前可视区域的第一个卡片索引
+            const scrollLeft = familyKeyScrollContainer.scrollLeft;
+            const cardWidth = 112 + 6; // 卡片宽度+gap
+            const index = Math.round(scrollLeft / cardWidth);
+            familyKeyIndicatorDots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+
+        // 新增函数：检查并更新指示器显示状态
+        function updateIndicatorDisplay() {
+            // 智能服务会员指示器
+            if (scrollContainer && indicatorBar) {
+                const containerWidth = scrollContainer.clientWidth;
+                const totalCardsWidth = scrollContainer.scrollWidth;
+                
+                // 判断卡片数量是否超出一屏
+                if (totalCardsWidth > containerWidth + 10) { // 添加10px的容差
+                    indicatorBar.style.display = 'flex'; // 显示指示器
+                    // 确保有2个指示点
+                    while (indicatorBar.children.length < 2) {
+                        const newDot = document.createElement('div');
+                        newDot.className = 'indicator-dot';
+                        indicatorBar.appendChild(newDot);
+                    }
+                } else {
+                    indicatorBar.style.display = 'none'; // 隐藏指示器
+                }
+            }
+
+            // 亲情钥匙指示器
+            if (familyKeyScrollContainer && familyKeyIndicatorBar) {
+                const containerWidth = familyKeyScrollContainer.clientWidth;
+                const totalCardsWidth = familyKeyScrollContainer.scrollWidth;
+                
+                // 判断卡片数量是否超出一屏
+                if (totalCardsWidth > containerWidth + 10) { // 添加10px的容差
+                    familyKeyIndicatorBar.style.display = 'flex'; // 显示指示器
+                    // 确保有2个指示点
+                    while (familyKeyIndicatorBar.children.length < 2) {
+                        const newDot = document.createElement('div');
+                        newDot.className = 'indicator-dot';
+                        familyKeyIndicatorBar.appendChild(newDot);
+                    }
+                } else {
+                    familyKeyIndicatorBar.style.display = 'none'; // 隐藏指示器
+                }
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateIndicatorDisplay();
+        });
+
+        if (scrollContainer) {
+            scrollContainer.addEventListener('scroll', updateIndicator);
+            // 初始化
+            updateIndicator();
+        }
+
+        if (familyKeyScrollContainer) {
+            familyKeyScrollContainer.addEventListener('scroll', updateFamilyKeyIndicator);
+            // 初始化
+            updateFamilyKeyIndicator();
+        }
+
+        // 添加窗口大小变化监听
+        window.addEventListener('resize', updateIndicatorDisplay);
+
+        // 添加Tab点击事件
+        if (tabMembership && tabFamilyKey) {
+            tabMembership.addEventListener('click', switchToMembership);
+            tabFamilyKey.addEventListener('click', switchToFamilyKey);
+        }
+        </script>
+
+        <!-- 会员权益图片全宽显示，垂直排列，无间距 -->
+        <section>
+        <div>
+        <img id="benefits-image" src="p1.png" alt="权益1" class="w-full block object-cover">
+        </div>
+        </section>
+        </main>
+        
+        <!-- 底部购买按钮悬浮并固定在屏幕底部，移除顶部内边距 -->
+        <footer class="fixed left-0 bottom-0 w-full px-4 pb-4 pt-4 border-t border-gray-800 backdrop-blur-sm z-50" style="background-color: rgba(0, 0, 0, 0.7);">
+        <button class="w-full py-4 rounded-xl text-dark text-lg btn-primary" 
+        style="background-image: url('button.png'); background-size: 100% 100%; background-position: center;">
+        <span id="total-price" class="font-bold">98</span>元 锁定权益
+        </button>
+        <!-- 其他功能链接 -->
+        <div class="flex justify-center gap-6 mt-4 mb-4 text-gray-300">
+        <a href="#">支付即同意《“乘趣”会员服务协议》</a>
+        </div>
+        </footer>
+
+    </body></html>
